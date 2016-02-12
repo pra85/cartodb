@@ -102,7 +102,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used geocoder quota in the current billing cycle' do
-      usage_metrics = CartoDB::GeocoderUsageMetrics.new(@mock_redis, @user1.username, nil)
+      usage_metrics = CartoDB::GeocoderUsageMetrics.new(@user1.username, nil, @mock_redis)
       Carto::TableGeocoderFactory.stubs(:get_geocoder_metrics_instance).returns(usage_metrics)
       Geocoding.new(kind: 'high-resolution',
                     user: @user1,
@@ -131,8 +131,8 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used geocoding quota for an organization' do
-      usage_metrics_1 = CartoDB::GeocoderUsageMetrics.new(@mock_redis, @org_user_1.username, @organization.name)
-      usage_metrics_2 = CartoDB::GeocoderUsageMetrics.new(@mock_redis, @org_user_2.username, @organization.name)
+      usage_metrics_1 = CartoDB::GeocoderUsageMetrics.new(@org_user_1.username, @organization.name, @mock_redis)
+      usage_metrics_2 = CartoDB::GeocoderUsageMetrics.new(@org_user_2.username, @organization.name, @mock_redis)
       # We are going to get the organization data show we could use both usage_metrics objects
       Carto::TableGeocoderFactory.stubs(:get_geocoder_metrics_instance).returns(usage_metrics_1)
       Geocoding.new(kind: 'high-resolution',
@@ -156,7 +156,7 @@ shared_examples_for "user models" do
     end
 
     it 'calculates the used geocoder quota in the current billing cycle including empty requests' do
-      usage_metrics = CartoDB::GeocoderUsageMetrics.new(@mock_redis, @user1.username, nil)
+      usage_metrics = CartoDB::GeocoderUsageMetrics.new(@user1.username, nil, @mock_redis)
       Carto::TableGeocoderFactory.stubs(:get_geocoder_metrics_instance).returns(usage_metrics)
       usage_metrics.incr(:geocoder_here, :success_responses, 10, DateTime.current)
       usage_metrics.incr(:geocoder_here, :success_responses, 100, (DateTime.current - 2))

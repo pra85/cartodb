@@ -21,7 +21,7 @@ module CartoDB
       :geocoder_cache
     ]
 
-    def initialize(redis, username, orgname = nil)
+    def initialize(username, orgname = nil, redis=$geocoder_metrics)
       @username = username
       @orgname = orgname
       @redis = redis
@@ -73,11 +73,5 @@ module CartoDB
       date.strftime('%Y%m')
     end
 
-  end
-
-  class RedisStub
-    def incrby(key, increment)
-      CartoDB.notify_debug("redis.incr(#{key}, #{increment})")
-    end
   end
 end

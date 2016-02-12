@@ -23,7 +23,7 @@ class User < Sequel::Model
   include CartoDB::UserDecorator
   include Concerns::CartodbCentralSynchronizable
   include CartoDB::ConfigUtils
-  include GeocoderMetricsHelper
+  include DataServicesMetricsHelper
 
   self.strict_param_setting = false
 
@@ -77,10 +77,12 @@ class User < Sequel::Model
   MAX_PASSWORD_LENGTH = 64
 
   GEOCODING_BLOCK_SIZE = 1000
+  ROUTING_BLOCK_SIZE = 1000
 
   TRIAL_DURATION_DAYS = 15
 
   DEFAULT_GEOCODING_QUOTA = 0
+  DEFAULT_ROUTING_QUOTA = 0
 
   COMMON_DATA_ACTIVE_DAYS = 31
 
@@ -170,6 +172,7 @@ class User < Sequel::Model
   def before_validation
     self.email = self.email.to_s.strip.downcase
     self.geocoding_quota ||= DEFAULT_GEOCODING_QUOTA
+    self.routing_quota ||= DEFAULT_ROUTING_QUOTA
   end
 
   def before_create
@@ -455,7 +458,10 @@ class User < Sequel::Model
         limit =  u.twitter_datasource_quota.to_i - (u.twitter_datasource_quota.to_i * delta)
         over_twitter_imports = u.get_twitter_imports_count > limit
 
-        over_map_views || over_geocodings || over_twitter_imports
+        limit = u.routing_quota.to_i - (u.routing_quota.to_i * delta)
+        over_routings = u.get_geocoding_calls > limit
+
+        over_map_views || over_geocodings || over_twitter_imports || over_routings
     end
   end
 
@@ -757,6 +763,7 @@ class User < Sequel::Model
       'map_key', api_key,
       'geocoder_type', geocoder_type,
       'geocoding_quota', geocoding_quota,
+      'routing_quota', routing_quota,
       'soft_geocoding_limit', soft_geocoding_limit,
       'google_maps_client_id', google_maps_key,
       'google_maps_api_key', google_maps_private_key,
@@ -808,6 +815,11 @@ class User < Sequel::Model
   def get_not_aggregated_geocoding_calls(options = {})
     date_from, date_to = quota_dates(options)
     Geocoding.get_not_aggregated_user_geocoding_calls(geocodings_dataset.db, self.id, date_from, date_to)
+  end
+
+  def get_new_system_geocoding_calls(options = {})
+    date_from, date_to = quota_dates(options)
+    get_user_geocoding_data(self, date_from, date_to)
   end
 
   def effective_twitter_block_price
